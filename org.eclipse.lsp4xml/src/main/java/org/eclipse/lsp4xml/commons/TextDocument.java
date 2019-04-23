@@ -131,7 +131,7 @@ public class TextDocument extends TextDocumentItem {
 	 * @param changes the text document changes.
 	 */
 	public void update(List<TextDocumentContentChangeEvent> changes) {
-		if (changes.size() < 1) {
+		if (changes.isEmpty()) {
 			// no changes, ignore it.
 			return;
 		}
@@ -157,7 +157,7 @@ public class TextDocument extends TextDocumentItem {
 					setText(buffer.toString());
 				}
 			} catch (BadLocationException e) {
-				// Should never occurs.
+				// Should never occur.
 			}
 		} else {
 			// like vscode does, get the last changes

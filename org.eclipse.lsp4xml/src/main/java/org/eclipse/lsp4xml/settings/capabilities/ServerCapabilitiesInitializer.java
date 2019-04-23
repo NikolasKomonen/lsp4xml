@@ -38,18 +38,13 @@ public class ServerCapabilitiesInitializer {
 			boolean isIncremental) {
 		ServerCapabilities serverCapabilities = new ServerCapabilities();
 
-		serverCapabilities.setTextDocumentSync(DEFAULT_SYNC_OPTION);
-
-		serverCapabilities
-				.setTextDocumentSync(isIncremental ? TextDocumentSyncKind.Incremental : TextDocumentSyncKind.Full);
+		serverCapabilities.setTextDocumentSync(isIncremental ? TextDocumentSyncKind.Incremental : TextDocumentSyncKind.Full);
 
 		serverCapabilities.setDocumentSymbolProvider(!clientCapabilities.isDocumentSymbolDynamicRegistered());
 		serverCapabilities.setDocumentHighlightProvider(!clientCapabilities.isDocumentHighlightDynamicRegistered());
 		serverCapabilities.setCodeActionProvider(!clientCapabilities.isCodeActionDynamicRegistered());
-		serverCapabilities
-				.setDocumentFormattingProvider(!clientCapabilities.isFormattingDynamicRegistrationSupported());
-		serverCapabilities.setDocumentRangeFormattingProvider(
-				!clientCapabilities.isRangeFormattingDynamicRegistrationSupported());
+		serverCapabilities.setDocumentFormattingProvider(!clientCapabilities.isFormattingDynamicRegistrationSupported());
+		serverCapabilities.setDocumentRangeFormattingProvider(!clientCapabilities.isRangeFormattingDynamicRegistrationSupported());
 		serverCapabilities.setHoverProvider(!clientCapabilities.isHoverDynamicRegistered());
 		serverCapabilities.setRenameProvider(!clientCapabilities.isRenameDynamicRegistrationSupported());
 		serverCapabilities.setFoldingRangeProvider(!clientCapabilities.isRangeFoldingDynamicRegistrationSupported());

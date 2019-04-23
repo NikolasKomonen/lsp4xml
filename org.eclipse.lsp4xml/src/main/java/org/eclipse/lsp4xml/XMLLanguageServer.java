@@ -53,7 +53,7 @@ import org.eclipse.lsp4xml.settings.LogsSettings;
 import org.eclipse.lsp4xml.settings.ServerSettings;
 import org.eclipse.lsp4xml.settings.SharedSettings;
 import org.eclipse.lsp4xml.settings.XMLGeneralClientSettings;
-import org.eclipse.lsp4xml.settings.XMLExperimentalCapabilities;
+import org.eclipse.lsp4xml.settings.XMLIncrementalSupportSettings;
 import org.eclipse.lsp4xml.settings.XMLFormattingOptions;
 import org.eclipse.lsp4xml.settings.capabilities.ServerCapabilitiesInitializer;
 import org.eclipse.lsp4xml.settings.capabilities.XMLCapabilityManager;
@@ -121,7 +121,7 @@ public class XMLLanguageServer
 	 * 
 	 * @param initializationOptionsSettings the XML settings
 	 */
-	public void updateSettings(Object initializationOptionsSettings) {
+	public synchronized void updateSettings(Object initializationOptionsSettings) {
 		if (initializationOptionsSettings == null) {
 			return;
 		}
@@ -149,15 +149,6 @@ public class XMLLanguageServer
 			if(serverSettings != null) {
 				String workDir = serverSettings.getNormalizedWorkDir();
 				FilesUtils.setCachePathSetting(workDir);
-			}
-		
-			// Experimental capabilities
-			XMLExperimentalCapabilities experimental = xmlClientSettings.getExperimental();
-			if (experimental != null) {
-				boolean incrementalSupport = experimental.getIncrementalSupport() != null
-						&& experimental.getIncrementalSupport().getEnabled() != null
-						&& experimental.getIncrementalSupport().getEnabled().booleanValue();
-				xmlTextDocumentService.setIncrementalSupport(incrementalSupport);
 			}
 		}
 		ContentModelSettings cmSettings = ContentModelSettings.getContentModelXMLSettings(initializationOptionsSettings);

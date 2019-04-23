@@ -37,8 +37,6 @@ public class XMLGeneralClientSettings {
 	private LogsSettings logs;
 
 	private XMLFormattingOptions format;
-	
-	private XMLExperimentalCapabilities experimental;
 
 	private CompletionSettings completion;
 
@@ -58,10 +56,6 @@ public class XMLGeneralClientSettings {
 
 	public XMLFormattingOptions getFormat() {
 		return format;
-	}
-	
-	public XMLExperimentalCapabilities getExperimental() {
-		return experimental;
 	}
 
 	/**

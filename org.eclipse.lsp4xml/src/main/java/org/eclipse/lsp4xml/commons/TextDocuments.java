@@ -26,21 +26,13 @@ import org.eclipse.lsp4j.TextDocumentItem;
  */
 public class TextDocuments implements ITextDocumentFactory {
 
-	private boolean incremental;
+	private final boolean incremental;
 
 	private final Map<String, TextDocument> documents;
 
 	public TextDocuments() {
 		documents = new HashMap<>();
-	}
-
-	/**
-	 * Set the incremental support.
-	 * 
-	 * @param incremental
-	 */
-	public void setIncremental(boolean incremental) {
-		this.incremental = incremental;
+		incremental = true; // Quick fix to set incremental 
 		documents.values().forEach(document -> document.setIncremental(incremental));
 	}
 

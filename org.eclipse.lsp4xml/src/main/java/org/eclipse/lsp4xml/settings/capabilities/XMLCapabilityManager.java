@@ -20,6 +20,8 @@ import static org.eclipse.lsp4xml.settings.capabilities.ServerCapabilitiesConsta
 import static org.eclipse.lsp4xml.settings.capabilities.ServerCapabilitiesConstants.FOLDING_RANGE_ID;
 import static org.eclipse.lsp4xml.settings.capabilities.ServerCapabilitiesConstants.FORMATTING_ID;
 import static org.eclipse.lsp4xml.settings.capabilities.ServerCapabilitiesConstants.FORMATTING_RANGE_ID;
+import static org.eclipse.lsp4xml.settings.capabilities.ServerCapabilitiesConstants.SYNC_ID;
+import static org.eclipse.lsp4xml.settings.capabilities.ServerCapabilitiesConstants.DEFAULT_SYNC_OPTION;
 import static org.eclipse.lsp4xml.settings.capabilities.ServerCapabilitiesConstants.HOVER_ID;
 import static org.eclipse.lsp4xml.settings.capabilities.ServerCapabilitiesConstants.LINK_ID;
 import static org.eclipse.lsp4xml.settings.capabilities.ServerCapabilitiesConstants.RENAME_ID;
@@ -40,11 +42,13 @@ import java.util.Set;
 import org.eclipse.lsp4j.ClientCapabilities;
 import org.eclipse.lsp4j.Registration;
 import org.eclipse.lsp4j.RegistrationParams;
+import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.Unregistration;
 import org.eclipse.lsp4j.UnregistrationParams;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4xml.XMLTextDocumentService;
 import org.eclipse.lsp4xml.settings.XMLFormattingOptions;
+import org.eclipse.lsp4xml.settings.XMLIncrementalSupportSettings;
 
 /**
  * Manager for capability related tasks
@@ -147,8 +151,10 @@ public class XMLCapabilityManager {
 	}
 
 	/**
-	 * Registers all capabilities that this server can support client side
-	 * preferences to turn on/off
+	 * Registers(indicates the servers ability to support the service) all capabilities that have the ability to be turned
+	 * on/off on the client side through preferences.
+	 * 
+	 * In the case the preference is set to off/false this server will tell the cliet it does not support this capability.
 	 * 
 	 * If a capability is not dynamic, it's handled by
 	 * {@link ServerCapabilitiesInitializer}

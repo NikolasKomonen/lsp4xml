@@ -429,7 +429,7 @@ public class XMLTextDocumentService implements TextDocumentService {
 	}
 
 	public void updateCompletionSettings(CompletionSettings newCompletion) {
-		sharedSettings.completionSettings.setAutoCloseTags(newCompletion.isAutoCloseTags());
+		sharedSettings.setCompletionSettings(newCompletion);
 	}
 
 	public boolean isIncrementalSupport() {
@@ -438,10 +438,6 @@ public class XMLTextDocumentService implements TextDocumentService {
 
 	public XMLFormattingOptions getSharedFormattingSettings() {
 		return sharedSettings.formattingSettings;
-	}
-
-	public void setIncrementalSupport(boolean incrementalSupport) {
-		this.documents.setIncremental(incrementalSupport);
 	}
 
 	public XMLValidationSettings getValidationSettings() {

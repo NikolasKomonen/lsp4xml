@@ -14,15 +14,15 @@ package org.eclipse.lsp4xml.settings;
  * XML experimental capabilities.
  *
  */
-public class XMLExperimentalCapabilities {
+public class XMLExperimentalSettings {
 
-	private XMLIncrementalSupportCapabilities incrementalSupport;
+	private XMLIncrementalSupportSettings incrementalSupport;
 
-	public void setIncrementalSupport(XMLIncrementalSupportCapabilities incrementalSupport) {
+	public void setIncrementalSupport(XMLIncrementalSupportSettings incrementalSupport) {
 		this.incrementalSupport = incrementalSupport;
 	}
 
-	public XMLIncrementalSupportCapabilities getIncrementalSupport() {
+	public XMLIncrementalSupportSettings getIncrementalSupport() {
 		return incrementalSupport;
 	}
 }
