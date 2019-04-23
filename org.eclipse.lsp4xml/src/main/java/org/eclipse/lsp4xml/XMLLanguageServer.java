@@ -64,7 +64,7 @@ import org.eclipse.lsp4xml.utils.FilesUtils;
  *
  */
 public class XMLLanguageServer
-		implements LanguageServer, ProcessLanguageServer, XMLCustomService, IXMLDocumentProvider {
+		implements LanguageServer, ProcessLanguageServer, IXMLDocumentProvider {
 
 	private static final Logger LOGGER = Logger.getLogger(XMLLanguageServer.class.getName());
 
@@ -211,15 +211,6 @@ public class XMLLanguageServer
 	@Override
 	public long getParentProcessId() {
 		return parentProcessId != null ? parentProcessId : 0;
-	}
-
-	@Override
-	public CompletableFuture<AutoCloseTagResponse> closeTag(TextDocumentPositionParams params) {
-		return computeAsync((monitor) -> {
-			TextDocument document = xmlTextDocumentService.getDocument(params.getTextDocument().getUri());
-			DOMDocument xmlDocument = xmlTextDocumentService.getXMLDocument(document);
-			return getXMLLanguageService().doAutoClose(xmlDocument, params.getPosition());
-		});
 	}
 
 	@Override

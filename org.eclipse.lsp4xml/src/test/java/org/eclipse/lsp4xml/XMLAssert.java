@@ -10,6 +10,8 @@
  */
 package org.eclipse.lsp4xml;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Path;
@@ -49,6 +51,7 @@ import org.eclipse.lsp4xml.dom.DOMDocument;
 import org.eclipse.lsp4xml.dom.DOMParser;
 import org.eclipse.lsp4xml.extensions.contentmodel.settings.ContentModelSettings;
 import org.eclipse.lsp4xml.extensions.contentmodel.settings.XMLValidationSettings;
+import org.eclipse.lsp4xml.services.XMLCompletionTest;
 import org.eclipse.lsp4xml.services.XMLLanguageService;
 import org.eclipse.lsp4xml.services.extensions.CompletionSettings;
 import org.eclipse.lsp4xml.services.extensions.diagnostics.IXMLErrorCode;
@@ -229,21 +232,22 @@ public class XMLAssert {
 
 	public static void testTagCompletion(String value, String expected) throws BadLocationException {
 		int offset = value.indexOf('|');
-		value = value.substring(0, offset) + value.substring(offset + 1);
-
+	
 		XMLLanguageService ls = new XMLLanguageService();
+		DOMDocument htmlDoc = XMLCompletionTest.initializeXMLDocument(value, offset);
+		Position position = htmlDoc.positionAt(offset);
 
-		TextDocument document = new TextDocument(value, "test://test/test.html");
-		Position position = document.positionAt(offset);
-		DOMDocument htmlDoc = DOMParser.getInstance().parse(document, ls.getResolverExtensionManager());
+		DOMDocument oldHtmlDoc = XMLCompletionTest.initializeOldXMLDocument(value, offset);
 
-		AutoCloseTagResponse response = ls.doTagComplete(htmlDoc, position);
+		WorkspaceEdit response = ls.doTagComplete(oldHtmlDoc, htmlDoc, position);
 		if(expected == null) {
-			Assert.assertNull(response);
+			assertNull(response);
 			return;
 		}
-		String actual = response.snippet;
-		Assert.assertEquals(expected, actual);
+		List<TextEdit> textEdits = response.getChanges().get(XMLCompletionTest.TEST_URI);
+		assertEquals(1, textEdits.size());
+		TextEdit edit = textEdits.get(0);
+		assertEquals(expected, edit.getNewText());
 	}
 
 	// ------------------- Diagnostics assert

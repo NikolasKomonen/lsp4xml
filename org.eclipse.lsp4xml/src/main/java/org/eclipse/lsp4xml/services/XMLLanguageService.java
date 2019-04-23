@@ -189,23 +189,7 @@ public class XMLLanguageService extends XMLExtensionsRegistry {
 		return codeActions.doCodeActions(context, range, document, formattingSettings);
 	}
 
-	public AutoCloseTagResponse doTagComplete(DOMDocument xmlDocument, Position position) {
-		return completions.doTagComplete(xmlDocument, position);
-	}
-
-	public AutoCloseTagResponse doAutoClose(DOMDocument xmlDocument, Position position) {
-		try {
-			int offset = xmlDocument.offsetAt(position);
-			String text = xmlDocument.getText();
-			if (offset > 0) {
-				char c = text.charAt(offset - 1);
-				if (c == '>' || c == '/') {
-					return doTagComplete(xmlDocument, position);
-				}
-			}
-			return null;
-		} catch (BadLocationException e) {
-			return null;
-		}
+	public WorkspaceEdit doTagComplete(DOMDocument oldXMLDom, DOMDocument newXMLDom, Position position) {
+		return completions.doTagComplete(oldXMLDom, newXMLDom, position);
 	}
 }

@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ClientCapabilities;
 import org.eclipse.lsp4j.CodeAction;
 import org.eclipse.lsp4j.CodeActionParams;
@@ -45,16 +46,17 @@ import org.eclipse.lsp4j.DocumentRangeFormattingParams;
 import org.eclipse.lsp4j.DocumentSymbol;
 import org.eclipse.lsp4j.DocumentSymbolParams;
 import org.eclipse.lsp4j.FoldingRange;
-import org.eclipse.lsp4j.FoldingRangeCapabilities;
 import org.eclipse.lsp4j.FoldingRangeRequestParams;
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.LocationLink;
+import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.ReferenceParams;
 import org.eclipse.lsp4j.RenameParams;
 import org.eclipse.lsp4j.SymbolInformation;
 import org.eclipse.lsp4j.TextDocumentClientCapabilities;
+import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
@@ -63,6 +65,7 @@ import org.eclipse.lsp4j.WorkspaceEdit;
 import org.eclipse.lsp4j.jsonrpc.CancelChecker;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.TextDocumentService;
+import org.eclipse.lsp4xml.commons.BadLocationException;
 import org.eclipse.lsp4xml.commons.LanguageModelCache;
 import org.eclipse.lsp4xml.commons.TextDocument;
 import org.eclipse.lsp4xml.commons.TextDocuments;
@@ -85,6 +88,8 @@ public class XMLTextDocumentService implements TextDocumentService {
 	private final TextDocuments documents;
 	private final LanguageModelCache<DOMDocument> xmlDocuments;
 	private SharedSettings sharedSettings;
+
+	public static final List<String> AUTO_CLOSE_TRIGGER_CHARACTERS = Arrays.asList(">", "/");
 
 	class BasicCancelChecker implements CancelChecker {
 
@@ -278,8 +283,50 @@ public class XMLTextDocumentService implements TextDocumentService {
 	 * This method is triggered when the user types on an XML document.
 	 */
 	public void didChange(DidChangeTextDocumentParams params) {
+		DOMDocument oldDom = null;
+		TextDocumentContentChangeEvent autoCloseChange = getAutoCloseChange(params);
+		if (autoCloseChange != null) {
+			TextDocumentItem oldDocument = getDocument(params.getTextDocument().getUri());
+			oldDom = getXMLDocument(oldDocument);
+		}
+
 		documents.onDidChangeTextDocument(params);
+
+		if (oldDom != null) {
+			TextDocumentItem newDocument = getDocument(params.getTextDocument().getUri());
+			DOMDocument newDom = getXMLDocument(newDocument);
+			int offset;
+			try {
+				offset = newDom.offsetAt(autoCloseChange.getRange().getStart());
+				Position updatedPosition = newDom.positionAt(offset + 1);
+				WorkspaceEdit edit = getXMLLanguageService().doTagComplete(oldDom, newDom, updatedPosition);
+				if(edit != null) {
+					xmlLanguageServer.getLanguageClient().applyEdit(new ApplyWorkspaceEditParams(edit));
+				}
+			} catch (BadLocationException e) {
+			} 
+		}
+
 		triggerValidation(params.getTextDocument().getUri(), params.getTextDocument().getVersion());
+	}
+
+	/**
+	 * If the document change event has the correct parameters to trigger
+	 * auto closing this will be indicated by the return of a TextDocumentContentChangeEvent.
+	 * 
+	 * If auto closing of tags should not be done this will return null.
+	 */
+	public TextDocumentContentChangeEvent getAutoCloseChange(DidChangeTextDocumentParams params) {
+	
+		List<TextDocumentContentChangeEvent> changes = params.getContentChanges();
+		if(changes.size() == 1) {
+			TextDocumentContentChangeEvent change = changes.get(0);
+			String changeText = change.getText();
+			if(AUTO_CLOSE_TRIGGER_CHARACTERS.contains(changeText)) {
+				return change;
+			}
+		}
+		return null;
 	}
 
 	@Override

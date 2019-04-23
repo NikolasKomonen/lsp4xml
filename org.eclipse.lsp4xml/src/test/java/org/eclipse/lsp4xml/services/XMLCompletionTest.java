@@ -25,6 +25,8 @@ import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.lsp4j.WorkspaceEdit;
 import org.eclipse.lsp4xml.commons.BadLocationException;
 import org.eclipse.lsp4xml.customservice.AutoCloseTagResponse;
 import org.eclipse.lsp4xml.dom.DOMDocument;
@@ -182,6 +184,8 @@ public class XMLCompletionTest {
 
 	// -------------------Tools----------------------------------------------------------
 
+	public static final String TEST_URI = "test:uri";
+
 	public void assertOpenStartTagCompletion(String xmlText, int expectedStartTagOffset, boolean startWithTagOpen,
 			String... expectedTag) {
 
@@ -216,6 +220,7 @@ public class XMLCompletionTest {
 
 	public void assertAutoCloseEndTagCompletionWithRange(String xmlText, String expectedTextEdit, Range range) {
 		int offset = getOffset(xmlText);
+		DOMDocument oldXMLDocument = initializeOldXMLDocument(xmlText, offset);
 		DOMDocument xmlDocument = initializeXMLDocument(xmlText, offset);
 		Position position = null;
 		try {
@@ -223,24 +228,37 @@ public class XMLCompletionTest {
 		} catch (Exception e) {
 			fail("Couldn't get position at offset");
 		}
-		AutoCloseTagResponse response = languageService.doTagComplete(xmlDocument, position);
+		WorkspaceEdit response = languageService.doTagComplete(oldXMLDocument, xmlDocument, position);
 		if(response == null) {
 			assertNull(expectedTextEdit);
 			assertNull(range);
 			return;
 		}
-		String completionList = response.snippet;
-		assertEquals(expectedTextEdit, completionList);
-		assertEquals(range, response.range);
+		List<TextEdit> textEdits = response.getChanges().get(TEST_URI);
+		assertEquals(1, textEdits.size());
+		TextEdit edit = textEdits.get(0);
+		assertEquals(expectedTextEdit, edit.getNewText());
+		if(range == null) {
+			assertEquals(edit.getRange().getStart(), edit.getRange().getEnd());
+		}
+		else {
+			assertEquals(range, edit.getRange());
+		}
+		
 	}
 
 	public int getOffset(String xmlText) {
 		return xmlText.indexOf("|");
 	}
 
-	public DOMDocument initializeXMLDocument(String xmlText, int offset) {
+	public static DOMDocument initializeXMLDocument(String xmlText, int offset) {
 		xmlText = xmlText.substring(0, offset) + xmlText.substring(offset + 1);
-		return DOMParser.getInstance().parse(xmlText, "test:uri", null);
+		return DOMParser.getInstance().parse(xmlText, TEST_URI, null);
+	}
+
+	public static DOMDocument initializeOldXMLDocument(String xmlText, int offset) {
+		xmlText = xmlText.substring(0, offset - 1) + xmlText.substring(offset + 1);
+		return DOMParser.getInstance().parse(xmlText, TEST_URI, null);
 	}
 
 	public CompletionList initializeCompletion(String xmlText, DOMDocument xmlDocument, int offset) {

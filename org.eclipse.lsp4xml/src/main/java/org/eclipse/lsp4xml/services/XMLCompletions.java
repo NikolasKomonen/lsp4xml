@@ -12,15 +12,20 @@ package org.eclipse.lsp4xml.services;
 
 import static java.lang.Character.isWhitespace;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.CompletionList;
@@ -28,6 +33,7 @@ import org.eclipse.lsp4j.InsertTextFormat;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.lsp4j.WorkspaceEdit;
 import org.eclipse.lsp4xml.commons.BadLocationException;
 import org.eclipse.lsp4xml.commons.TextDocument;
 import org.eclipse.lsp4xml.customservice.AutoCloseTagResponse;
@@ -46,7 +52,6 @@ import org.eclipse.lsp4xml.services.extensions.ICompletionRequest;
 import org.eclipse.lsp4xml.services.extensions.ICompletionResponse;
 import org.eclipse.lsp4xml.services.extensions.XMLExtensionsRegistry;
 import org.eclipse.lsp4xml.settings.SharedSettings;
-import org.eclipse.lsp4xml.settings.XMLFormattingOptions;
 import org.eclipse.lsp4xml.utils.StringUtils;
 
 /**
@@ -321,10 +326,10 @@ public class XMLCompletions {
 		return true;
 	}
 
-	public AutoCloseTagResponse doTagComplete(DOMDocument xmlDocument, Position position) {
+	public WorkspaceEdit doTagComplete(DOMDocument oldXMLDocument, DOMDocument newXMLDocument, Position position) {
 		int offset;
 		try {
-			offset = xmlDocument.offsetAt(position);
+			offset = newXMLDocument.offsetAt(position);
 			if(offset - 2 < 0) { //There is not enough content for autoClose
 				return null;
 			}
@@ -335,11 +340,12 @@ public class XMLCompletions {
 		if (offset <= 0) {
 			return null;
 		}
-		char c = xmlDocument.getText().charAt(offset - 1);
-		char cBefore = xmlDocument.getText().charAt(offset - 2);
+		char c = newXMLDocument.getText().charAt( offset - 1);
+		char cBefore = newXMLDocument.getText().charAt(offset - 2);
 		String snippet = null;
+		Position end = null;
 		if (c == '>') { // Case: <a>|
-			DOMNode node = xmlDocument.findNodeBefore(offset);
+			DOMNode node = newXMLDocument.findNodeBefore(offset);
 			if(!(node instanceof DOMElement)) {
 				return null;
 			}
@@ -356,20 +362,22 @@ public class XMLCompletions {
 				
 			}
 		} else if (cBefore == '<' && c == '/') { // Case: <a> </|
-			DOMNode node = xmlDocument.findNodeBefore(offset);
+			DOMNode node = newXMLDocument.findNodeBefore(offset);
+			int parentNodesVisited = 0;
 			while (node != null && node.isClosed()) {
 				node = node.getParentNode();
+				parentNodesVisited++;
 			}
 			if (node != null && node.isElement() && ((DOMElement) node).getTagName() != null) {
-				snippet = ((DOMElement) node).getTagName() + ">$0";
+				String startSnippet = parentNodesVisited == 0 ? "$0" : "";
+				snippet = startSnippet + ((DOMElement) node).getTagName() + ">";
 			}
 		} else {
-			DOMNode node = xmlDocument.findNodeBefore(offset);
+			DOMNode node = newXMLDocument.findNodeBefore(offset);
 			if(node.isElement() && node.getNodeName() != null) {
 				DOMElement element1 = (DOMElement) node;
 				
 				Integer slashOffset = element1.endsWith('/', offset);
-				Position end = null;
 				if(!element1.isInEndTag(offset) && slashOffset != null) { //The typed characted was '/'
 					List<DOMAttr> attrList = element1.getAttributeNodes();
 					if(attrList != null) {
@@ -378,7 +386,7 @@ public class XMLCompletions {
 							return null;
 						}
 					}
-					String text = xmlDocument.getText();
+					String text = newXMLDocument.getText();
 					boolean closeBracketAfterSlash = offset < text.length() ? text.charAt(offset) == '>' : false; // After the slash is a close bracket
 					
 					// Case: <a/| ...
@@ -389,7 +397,7 @@ public class XMLCompletions {
 						snippet = ">$0";
 						if(element1.hasEndTag()) { // Case: <a/| </a>
 							try {
-								end = xmlDocument.positionAt(element1.getEnd());
+								end = newXMLDocument.positionAt(element1.getEnd());
 							} catch (BadLocationException e) {
 								return null;
 							}
@@ -403,7 +411,7 @@ public class XMLCompletions {
 							if(!element2.hasStartTag() && node.getNodeName().equals(element2.getNodeName())) {
 								try {
 									snippet = ">$0";
-									end = xmlDocument.positionAt(element2.getEnd());
+									end = newXMLDocument.positionAt(element2.getEnd());
 								} catch (BadLocationException e) {
 									return null;
 								}
@@ -419,7 +427,7 @@ public class XMLCompletions {
 										 && !elementAfterParent.hasStartTag()) {
 										try {
 											snippet = ">$0";
-											end = xmlDocument.positionAt(parentElement.getEnd());
+											end = newXMLDocument.positionAt(parentElement.getEnd());
 										} catch (BadLocationException e) {
 											return null;
 										}	
@@ -428,16 +436,24 @@ public class XMLCompletions {
 							}
 						}
 					}
-					if(snippet != null && end != null) {
-						return new AutoCloseTagResponse(snippet, new Range(position, end));
-					}
 				}
 			}
 		}
 		if(snippet == null) {
 			return null;
 		}
-		return new AutoCloseTagResponse(snippet);
+		Position startEdit;
+		try {
+			startEdit = newXMLDocument.positionAt(offset);
+		} catch (BadLocationException e) {
+			return null;
+		}
+		Position endEdit = end != null ? end : startEdit;
+	
+		TextEdit textEdit = new TextEdit(new Range(startEdit, endEdit), snippet);
+		Map<String, List<TextEdit>> map = new LinkedHashMap<String, List<TextEdit>>();
+		map.put(newXMLDocument.getDocumentURI(), Arrays.asList(textEdit));
+		return new WorkspaceEdit(map);
 	}
 
 	// ---------------- Tags completion
