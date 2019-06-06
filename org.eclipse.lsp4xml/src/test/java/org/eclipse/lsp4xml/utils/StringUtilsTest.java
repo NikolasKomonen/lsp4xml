@@ -11,6 +11,7 @@
 package org.eclipse.lsp4xml.utils;
 
 import static org.eclipse.lsp4xml.utils.StringUtils.trimNewLines;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -50,6 +51,24 @@ public class StringUtilsTest {
 	public void testTrimWhichContainsNewLine() {
 		assertTrimNewLines(" \r abc\rdef", " abc\rdef");
 		assertTrimNewLines("   abc\rdef", "   abc\rdef");
+	}
+
+	@Test
+	public void testGetOffsetAfterWhitespace() {
+		assertEquals(4, StringUtils.getOffsetAfterWhitespaceInfront("abc 123", 7));
+		assertEquals(4, StringUtils.getOffsetAfterWhitespaceInfront("abc 123", 6));
+		assertEquals(-1, StringUtils.getOffsetAfterWhitespaceInfront("abc 123", 4));
+		assertEquals(0, StringUtils.getOffsetAfterWhitespaceInfront("123", 3));
+		assertEquals(-1, StringUtils.getOffsetAfterWhitespaceInfront("123", 0));
+	}
+
+	@Test
+	public void testGetWhitespaceOffset() {
+		assertEquals(3, StringUtils.getNextWhitespaceOffsetFromGivenOffset("abc 123", 4));
+		assertEquals(0, StringUtils.getNextWhitespaceOffsetFromGivenOffset("abc 123", 3));
+		assertEquals(3, StringUtils.getNextWhitespaceOffsetFromGivenOffset("abc 123 456", 4));
+		assertEquals(3, StringUtils.getNextWhitespaceOffsetFromGivenOffset("abc 123", 0));
+		assertEquals(2, StringUtils.getNextWhitespaceOffsetFromGivenOffset("abc 123", 1));
 	}
 
 	private static void assertTrimNewLines(String valueToTrim, String expected) {
